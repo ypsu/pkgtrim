@@ -1,0 +1,49 @@
+== /var/lib/pacman/local/fancyapp/desc
+%NAME%
+fancyapp
+
+%SIZE%
+1000000
+
+%DEPENDS%
+fancylib
+
+== /var/lib/pacman/local/fancylib/desc
+%NAME%
+fancylib
+
+%SIZE%
+2000000
+
+%DEPENDS%
+glibc
+
+== /var/lib/pacman/local/otherapp/desc
+%NAME%
+otherapp
+
+%SIZE%
+4000000
+
+%DEPENDS%
+glibc
+
+== /var/lib/pacman/local/glibc/desc
+%NAME%
+glibc
+
+%SIZE%
+8000000
+
+== /home/user/tricky_pkgtrim
+somepkg1
+# comment 1
+somepkg2 somepkg3
+# comment 2
+# comment 3
+somepkg4
+!seq 5
+somepkg5
+
+!echo -e '# subprocess comment\nsubprocess_pkg'
+!echo '!echo recursive_pkg'

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if test "$1" = install; then
+  ln -rs post-commit .git/hooks/ || fail "error: post-commit install failed."
+  echo "success: post-commit installed."
+  exit
+fi
+
+go run -tags=test github.com/ypsu/pkgtrim save
