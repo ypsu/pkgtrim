@@ -89,6 +89,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		flagset          = flag.NewFlagSet("pkgtrim", flag.ContinueOnError)
 		flagDumpConfig   = flagset.Bool("dump_config", false, "Debug option: if true then dump the parsed config.")
 		flagDumpPackages = flagset.Bool("dump_packages", false, "Debug option: if true then dump the list of packages and dependencies pkgtrim detected.")
+		flagTrace        = flagset.Bool("trace", false, "If true, there must be two arguments, [package] and [dependency] and pkgtrim generates a dependency graph between the two. Pipe the output to 'dot -Tx11' to visualize the graph.")
 		flagTrimfile     = flagset.String("trimfile", defaultTrimfile, "The config file.")
 	)
 	flagset.SetOutput(w)
@@ -206,6 +207,47 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 			}
 		}
 		return uniqueSize
+	}
+
+	if *flagTrace {
+		if flagset.NArg() != 2 {
+			return fmt.Errorf("-trace requires exactly 2 arguments, got %d", flagset.NArg())
+		}
+		src, srcExists := pkgids[flagset.Arg(0)]
+		dst, dstExists := pkgids[flagset.Arg(1)]
+		if !srcExists {
+			return fmt.Errorf("package %s not found", flagset.Arg(0))
+		}
+		if !dstExists {
+			return fmt.Errorf("package %s not found", flagset.Arg(1))
+		}
+		q = append(q, src)
+		bfs()
+		if !visited[dst] {
+			return fmt.Errorf("package %s is not a dependency of %s", flagset.Arg(0), flagset.Arg(1))
+		}
+		fmt.Fprintln(w, "strict digraph {")
+		path := make([]string, 0, 64)
+		var findpaths func(pkgid)
+		findpaths = func(pkg pkgid) {
+			if pkg == src {
+				slices.Reverse(path)
+				fmt.Fprintf(w, "  \"%s\"\n", strings.Join(path, "\" -> \""))
+				slices.Reverse(path)
+				return
+			}
+			for _, rdep := range rdeps[pkg] {
+				if visited[rdep] {
+					path = append(path, pkgs[rdep].Name)
+					findpaths(rdep)
+					path = path[:len(path)-1]
+				}
+			}
+		}
+		path = append(path, flagset.Arg(1))
+		findpaths(dst)
+		fmt.Fprintln(w, "}")
+		return nil
 	}
 
 	if flagset.NArg() > 0 {

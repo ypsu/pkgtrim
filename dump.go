@@ -76,6 +76,12 @@ func dump(ctx context.Context) error {
 			add("trimmed", "-trimfile=pkgtrim.config")
 			add("trimmed2", "-trimfile=pkgtrim.config", "gmp")
 			add("trim1", "clang")
+			add("tracebad0", "-trace")
+			add("tracebad1", "-trace", "gmp")
+			add("tracebad2", "-trace", "gmp", "gdb")
+			add("tracebad3", "-trace", "gdb", "gmp", "gmp")
+			add("tracebadpkg", "-trace", "gdb", "gxx")
+			add("traceok", "-trace", "gdb", "gmp")
 		}
 	}
 
