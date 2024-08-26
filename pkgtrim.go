@@ -81,6 +81,13 @@ func makeRE(globs ...string) *regexp.Regexp {
 	return regexp.MustCompile(expr.String())
 }
 
+func tonumber(v bool) int {
+	if v {
+		return 1
+	}
+	return 0
+}
+
 // Pkgtrim implements the tool's main functionality.
 func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	// Define and parse flags.
@@ -111,6 +118,10 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	flagset.SetOutput(w)
 	if err := flagset.Parse(args); err != nil {
 		return err
+	}
+
+	if tonumber(*flagInstall)+tonumber(*flagRemove)+tonumber(*flagTrace) >= 2 {
+		return fmt.Errorf("only one action allowed")
 	}
 
 	if *flagTestFS != "" {
