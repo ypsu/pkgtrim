@@ -169,14 +169,14 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	// To keep things efficient, keep things in []int32 arrays.
 	type pkgid int32
 	var (
-		n       = len(pkgs)                 // number of packages
-		q       = make([]pkgid, 0, n)       // queue for the breadth first search
-		visited = make([]bool, n)           // marker for the bfs
-		shared  = make([]bool, n)           // marker for determining the unique size
-		deps    = make([][]pkgid, n)        // direct dependencies of a package
-		rdeps   = make([][]pkgid, n)        // direct reverse dependencies of a package
-		pkgids  = make(map[string]pkgid, n) // map package names to a number
-		unique  = make([]int64, n)          // the total unique size used for each package
+		n        = len(pkgs)                 // number of packages
+		toporder = make([]pkgid, 0, n)       // the topological order of the packages, built by traverse
+		visited  = make([]bool, n)           // marker for traverse
+		shared   = make([]bool, n)           // marker for determining the unique size
+		deps     = make([][]pkgid, n)        // direct dependencies of a package
+		rdeps    = make([][]pkgid, n)        // direct reverse dependencies of a package
+		pkgids   = make(map[string]pkgid, n) // map package names to a number
+		unique   = make([]int64, n)          // the total unique size used for each package
 	)
 
 	// Compute deps and rdeps.
@@ -227,37 +227,38 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		return nil
 	}
 
-	// Runs breadth first search.
-	// q must be initialized with the initial entries.
-	// Returns the unique size.
-	bfs := func() int64 {
-		initialQueueSize := len(q)
-		for _, i := range q {
-			visited[i] = true
+	// Runs a depth first search from a given node and builds toporder.
+	var traverse func(pkgid)
+	traverse = func(u pkgid) {
+		if visited[u] {
+			return
 		}
-		for qi := 0; qi < len(q); qi++ {
-			for _, j := range deps[q[qi]] {
-				if !visited[j] {
-					visited[j], q = true, append(q, j)
-				}
-			}
+		visited[u] = true
+		for _, dep := range deps[u] {
+			traverse(dep)
 		}
+		toporder = append(toporder, u)
+	}
 
-		// Compute the unique size.
+	// Computes the shared array and returns the unique size.
+	// Should be called after traverse().
+	computeUnique := func(seed ...pkgid) int64 {
 		// A package is not unique in the ith package if it has an rdep that is already shared or is outside the visited packages.
+		slices.Reverse(toporder)
 		var uniqueSize int64
-		for _, j := range q[:initialQueueSize] {
-			uniqueSize += pkgs[j].Size
-		}
-		for _, j := range q[initialQueueSize:] {
-			for _, k := range rdeps[j] {
-				if shared[k] || !visited[k] {
-					shared[j] = true
+		for _, i := range toporder {
+			if slices.Contains(seed, i) {
+				uniqueSize += pkgs[i].Size
+				continue
+			}
+			for _, j := range rdeps[i] {
+				if shared[j] || !visited[j] {
+					shared[i] = true
 					break
 				}
 			}
-			if !shared[j] {
-				uniqueSize += pkgs[j].Size
+			if !shared[i] {
+				uniqueSize += pkgs[i].Size
 			}
 		}
 		return uniqueSize
@@ -275,8 +276,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		if !dstExists {
 			return fmt.Errorf("package %s not found", flagset.Arg(1))
 		}
-		q = append(q, src)
-		bfs()
+		traverse(src)
 		if !visited[dst] {
 			return fmt.Errorf("package %s is not a dependency of %s", flagset.Arg(0), flagset.Arg(1))
 		}
@@ -305,14 +305,16 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	}
 
 	if flagset.NArg() > 0 {
-		for _, pkg := range flagset.Args() {
+		seed := make([]pkgid, flagset.NArg())
+		for i, pkg := range flagset.Args() {
 			id, exists := pkgids[pkg]
 			if !exists {
 				return fmt.Errorf("package %s not installed", pkg)
 			}
-			q = append(q, id)
+			traverse(id)
+			seed[i] = id
 		}
-		bfs()
+		computeUnique(seed...)
 		var (
 			sharedsize        int64
 			uniquesize        int64
@@ -333,8 +335,10 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		}
 
 		// Compute top level rdeps by running bfs in reverse.
-		deps, rdeps, q = rdeps, deps, q[:flagset.NArg()]
-		bfs()
+		deps, rdeps, toporder = rdeps, deps, toporder[:0]
+		for _, i := range seed {
+			traverse(i)
+		}
 		deps, rdeps = rdeps, deps
 		for i, pkg := range pkgs {
 			if !visited[i] || len(rdeps[i]) > 0 {
@@ -371,19 +375,18 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 
 	// No args mode.
 	// For each top level undocumented package compute the total and unique usage via a breadth first search.
-	toremove := make(map[string]struct{}, 64)
 	for i := range n {
 		if len(rdeps[i]) > 0 || intentionalRE.MatchString(pkgs[i].Name) {
 			continue
 		}
-		q = append(q[:0], pkgid(i))
-		unique[i] = bfs()
+		traverse(pkgid(i))
+		unique[i] = computeUnique(pkgid(i))
 
 		// Reset the arrays for the next iteration.
-		for _, j := range q {
-			toremove[pkgs[j].Name] = struct{}{}
+		for _, j := range toporder {
 			visited[j], shared[j] = false, false
 		}
+		toporder = toporder[:0]
 	}
 
 	sizeorder := make([]pkgid, n)
@@ -403,7 +406,21 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	}
 
 	if *flagRemove {
-		argv := system.Remove(slices.Sorted(maps.Keys(toremove)))
+		for i, pkg := range pkgs {
+			if len(rdeps[i]) == 0 && !intentionalRE.MatchString(pkg.Name) {
+				traverse(pkgid(i))
+			}
+		}
+		computeUnique()
+		toremove := make([]string, 0, 64)
+		for _, i := range toporder {
+			if !shared[i] {
+				toremove = append(toremove, pkgs[i].Name)
+			}
+		}
+
+		slices.Sort(toremove)
+		argv := system.Remove(toremove)
 		fmt.Fprintln(w, strings.Join(argv, " "))
 		if *flagDryrun {
 			return nil
