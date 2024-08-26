@@ -74,6 +74,7 @@ func dump(ctx context.Context) error {
 		}
 		if testfile == "archlarge" {
 			add("trimmed", "-trimfile=pkgtrim.config")
+			add("trimmed2", "-trimfile=pkgtrim.config", "gmp")
 			add("trim1", "clang")
 		}
 	}

@@ -139,7 +139,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		}
 		return nil
 	}
-	expected := func(pkg string) bool {
+	intentional := func(pkg string) bool {
 		if _, exists := trimconfig[pkg]; exists {
 			return true
 		}
@@ -217,10 +217,12 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		}
 		bfs()
 		var (
-			sharedsize int64
-			uniquesize int64
-			sharedpkgs = make([]string, 0, n) // dependencies that other packages also have
-			uniquepkgs = make([]string, 0, n) // dependencies unique to the arguments
+			sharedsize        int64
+			uniquesize        int64
+			sharedpkgs        = make([]string, 0, n) // dependencies that other packages also have
+			uniquepkgs        = make([]string, 0, n) // dependencies unique to the arguments
+			intentionalpkgs   = make([]string, 0, n) // top level rdeps that are present in .pkgtrim
+			unintentionalpkgs = make([]string, 0, n) // top level rdeps that are not present in .pkgtrim
 		)
 		for i, pkg := range pkgs {
 			if shared[i] {
@@ -230,16 +232,35 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 				uniquesize += pkg.Size
 				uniquepkgs = append(uniquepkgs, pkg.Name)
 			}
+			shared[i], visited[i] = false, false
 		}
+
+		// Compute top level rdeps by running bfs in reverse.
+		deps, rdeps, q = rdeps, deps, q[:flagset.NArg()]
+		bfs()
+		deps, rdeps = rdeps, deps
+		for i, pkg := range pkgs {
+			if !visited[i] || len(rdeps[i]) > 0 {
+				continue
+			}
+			if intentional(pkg.Name) {
+				intentionalpkgs = append(intentionalpkgs, pkg.Name)
+			} else {
+				unintentionalpkgs = append(unintentionalpkgs, pkg.Name)
+			}
+		}
+
 		fmt.Fprintf(w, "shared dependencies (%s): %s\n\n", humanize(sharedsize), strings.Join(sharedpkgs, " "))
 		fmt.Fprintf(w, "unique dependencies (%s): %s\n\n", humanize(uniquesize), strings.Join(uniquepkgs, " "))
+		fmt.Fprintf(w, "intentional top level rdeps: %s\n\n", strings.Join(intentionalpkgs, " "))
+		fmt.Fprintf(w, "unintentional top level rdeps: %s\n\n", strings.Join(unintentionalpkgs, " "))
 		return nil
 	}
 
 	// No args mode.
-	// For each top level unexpected package compute the total and unique usage via a breadth first search.
+	// For each top level undocumented package compute the total and unique usage via a breadth first search.
 	for i := range n {
-		if len(rdeps[i]) > 0 || expected(pkgs[i].Name) {
+		if len(rdeps[i]) > 0 || intentional(pkgs[i].Name) {
 			continue
 		}
 		q = append(q[:0], pkgid(i))
@@ -261,7 +282,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 
 	for _, id := range sizeorder {
 		pkg := pkgs[id]
-		if len(rdeps[id]) > 0 || expected(pkg.Name) {
+		if len(rdeps[id]) > 0 || intentional(pkg.Name) {
 			continue
 		}
 		fmt.Fprintf(w, "%s %-24s %s\n", humanize(unique[id]), pkg.Name, pkg.Desc)
