@@ -104,6 +104,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	if err != nil {
 		return fmt.Errorf("load packages: %v", err)
 	}
+	slices.SortFunc(pkgs, func(a, b Package) int { return cmp.Compare(a.Name, b.Name) })
 
 	if *flagDumpPackages {
 		for _, pkg := range pkgs {
