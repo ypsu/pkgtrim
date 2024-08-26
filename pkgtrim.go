@@ -106,7 +106,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		flagRemove       = flagset.Bool("remove", false, "Remove the selected packages and their unique dependencies or all unintentional packages and their dependencies if no arguments.")
 		flagTestFS       = flagset.String("testfs", "", "Mock the filesystem with this textar file instead of using the real filesystem.")
 		flagTrace        = flagset.Bool("trace", false, "If true, there must be two arguments, [package] and [dependency] and pkgtrim generates a dependency graph between the two. Pipe the output to 'dot -Tx11' to visualize the graph.")
-		flagTrimfile     = flagset.String("trimfile", defaultTrimfile, "The config file.")
+		flagTrimfile     = flagset.String("f", defaultTrimfile, "The config file.")
 	)
 	flagset.SetOutput(w)
 	if err := flagset.Parse(args); err != nil {
