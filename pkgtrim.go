@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/ypsu/textar"
 )
 
 func humanize(sz int64) string {
@@ -89,12 +91,21 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		flagset          = flag.NewFlagSet("pkgtrim", flag.ContinueOnError)
 		flagDumpConfig   = flagset.Bool("dump_config", false, "Debug option: if true then dump the parsed config.")
 		flagDumpPackages = flagset.Bool("dump_packages", false, "Debug option: if true then dump the list of packages and dependencies pkgtrim detected.")
+		flagTestFS       = flagset.String("testfs", "", "Mock the filesystem with this textar file instead of using the real filesystem.")
 		flagTrace        = flagset.Bool("trace", false, "If true, there must be two arguments, [package] and [dependency] and pkgtrim generates a dependency graph between the two. Pipe the output to 'dot -Tx11' to visualize the graph.")
 		flagTrimfile     = flagset.String("trimfile", defaultTrimfile, "The config file.")
 	)
 	flagset.SetOutput(w)
 	if err := flagset.Parse(args); err != nil {
 		return err
+	}
+
+	if *flagTestFS != "" {
+		data, err := fs.ReadFile(rootfs, abspath(*flagTestFS))
+		if err != nil {
+			return fmt.Errorf("load testfs: %v", err)
+		}
+		rootfs = textar.FS(textar.Parse(data))
 	}
 
 	system, err := NewPackageSystem(rootfs)
