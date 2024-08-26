@@ -42,6 +42,15 @@ func TestHumanize(t *testing.T) {
 	et.Expect("", humanize(12345678901234), "12345678.9 MB")
 }
 
+func TestGlobs(t *testing.T) {
+	et := efftesting.New(t)
+	et.Expect("", makeRE(), "^()$")
+	et.Expect("", makeRE("a"), "^(a)$")
+	et.Expect("", makeRE("a*b"), "^(a.*b)$")
+	et.Expect("", makeRE("a", "b", "c"), "^(a|b|c)$")
+	et.Expect("", makeRE("a", "b*", "c"), "^(a|b.*|c)$")
+}
+
 func TestMain(m *testing.M) {
 	os.Exit(efftesting.Main(m))
 }

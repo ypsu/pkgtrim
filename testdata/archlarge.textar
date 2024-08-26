@@ -2,6 +2,7 @@
 # base packages
 archlinuxarm-keyring base ca-certificates firmware-raspberrypi linux-aarch64 uboot-raspberrypi
 man-db man-pages openssh sudo
+wireless*
 
 # basic tools
 moreutils mutt tmux vim wget xclip xorg-xauth

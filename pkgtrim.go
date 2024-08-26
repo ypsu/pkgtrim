@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -60,6 +61,24 @@ func parseconfig(found map[string]struct{}, depth int, cfg []byte) error {
 		}
 	}
 	return nil
+}
+
+// makeRE makes a single regex from a set of globs.
+func makeRE(globs ...string) *regexp.Regexp {
+	expr := &strings.Builder{}
+	expr.WriteString("^(")
+	for i, glob := range globs {
+		if i != 0 {
+			expr.WriteByte('|')
+		}
+		parts := strings.Split(glob, "*")
+		for i, part := range parts {
+			parts[i] = regexp.QuoteMeta(part)
+		}
+		expr.WriteString(strings.Join(parts, ".*"))
+	}
+	expr.WriteString(")$")
+	return regexp.MustCompile(expr.String())
 }
 
 // Pkgtrim implements the tool's main functionality.
@@ -131,12 +150,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		fmt.Fprintln(w, strings.Join(slices.Sorted(maps.Keys(foundPackages)), "\n"))
 		return nil
 	}
-	intentional := func(pkg string) bool {
-		if _, exists := foundPackages[pkg]; exists {
-			return true
-		}
-		return false
-	}
+	intentionalRE := makeRE(slices.Collect(maps.Keys(foundPackages))...)
 
 	// To keep things efficient, keep things in []int32 arrays.
 	type pkgid int32
@@ -276,7 +290,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 			if !visited[i] || len(rdeps[i]) > 0 {
 				continue
 			}
-			if intentional(pkg.Name) {
+			if intentionalRE.MatchString(pkg.Name) {
 				intentionalpkgs = append(intentionalpkgs, pkg.Name)
 			} else {
 				unintentionalpkgs = append(unintentionalpkgs, pkg.Name)
@@ -293,7 +307,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	// No args mode.
 	// For each top level undocumented package compute the total and unique usage via a breadth first search.
 	for i := range n {
-		if len(rdeps[i]) > 0 || intentional(pkgs[i].Name) {
+		if len(rdeps[i]) > 0 || intentionalRE.MatchString(pkgs[i].Name) {
 			continue
 		}
 		q = append(q[:0], pkgid(i))
@@ -315,7 +329,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 
 	for _, id := range sizeorder {
 		pkg := pkgs[id]
-		if len(rdeps[id]) > 0 || intentional(pkg.Name) {
+		if len(rdeps[id]) > 0 || intentionalRE.MatchString(pkg.Name) {
 			continue
 		}
 		fmt.Fprintf(w, "%s %-24s %s\n", humanize(unique[id]), pkg.Name, pkg.Desc)
