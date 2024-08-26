@@ -39,33 +39,24 @@ func abspath(p string) string {
 	return filepath.Join(wd, p)[1:]
 }
 
-func parseconfig(dst map[string]string, depth int, cfg []byte) error {
+func parseconfig(found map[string]struct{}, depth int, cfg []byte) error {
 	if depth > 10 {
 		return fmt.Errorf("too many nested commands")
 	}
-	curcomment, commentmode := "", false
 	for i, line := range strings.Split(string(cfg), "\n") {
-		if strings.HasPrefix(line, "#") {
-			// Grab the first line of each comment group.
-			if !commentmode {
-				curcomment, commentmode = strings.TrimSpace(line[1:]), true
-			}
-			continue
-		}
-		commentmode = false
 		if strings.HasPrefix(line, "!") {
 			output, err := exec.Command("sh", "-c", line[1:]).Output()
 			if err != nil {
 				return fmt.Errorf("execute line %d: %q: %v", i+1, line[1:], err)
 			}
-			if err := parseconfig(dst, depth+1, output); err != nil {
+			if err := parseconfig(found, depth+1, output); err != nil {
 				return fmt.Errorf("parse line %d: %q: %v", i+1, line[1:], err)
 			}
 			continue
 		}
-		pkgs, _, _ := strings.Cut(line, "#") // strip side comments
+		pkgs, _, _ := strings.Cut(line, "#") // strip comments
 		for _, pkg := range strings.Fields(pkgs) {
-			dst[pkg] = curcomment
+			found[pkg] = struct{}{}
 		}
 	}
 	return nil
@@ -126,34 +117,22 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	}
 
 	// Parse ~/.pkgtrim.
-	// trimconfig maps each entry in the config to its corresponding group comment.
-	trimconfig := map[string]string{}
+	foundPackages := map[string]struct{}{}
 	trimfileBytes, err := fs.ReadFile(rootfs, abspath(*flagTrimfile))
 	if err != nil {
 		if *flagTrimfile != defaultTrimfile {
 			return fmt.Errorf("open trimfile: %v", err)
 		}
 	}
-	if err := parseconfig(trimconfig, 0, trimfileBytes); err != nil {
+	if err := parseconfig(foundPackages, 0, trimfileBytes); err != nil {
 		return fmt.Errorf("parse %s: %v", *flagTrimfile, err)
 	}
 	if *flagDumpConfig {
-		// Group by comments.
-		bycomments := map[string][]string{}
-		for pkg, comment := range trimconfig {
-			bycomments[comment] = append(bycomments[comment], pkg)
-		}
-		for _, comment := range slices.Sorted(maps.Keys(bycomments)) {
-			slices.Sort(bycomments[comment])
-			if comment != "" {
-				fmt.Fprintf(w, "# %s\n", comment)
-			}
-			fmt.Fprintf(w, "%s\n", strings.Join(bycomments[comment], " "))
-		}
+		fmt.Fprintln(w, strings.Join(slices.Sorted(maps.Keys(foundPackages)), "\n"))
 		return nil
 	}
 	intentional := func(pkg string) bool {
-		if _, exists := trimconfig[pkg]; exists {
+		if _, exists := foundPackages[pkg]; exists {
 			return true
 		}
 		return false
