@@ -146,7 +146,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		return false
 	}
 
-	// To keep things efficient, the main loop only works on []int32 arrays.
+	// To keep things efficient, keep things in []int32 arrays.
 	type pkgid int32
 	var (
 		n       = len(pkgs)                 // number of packages
@@ -175,6 +175,10 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	// q must be initialized with the initial entries.
 	// Returns the unique size.
 	bfs := func() int64 {
+		initialQueueSize := len(q)
+		for _, i := range q {
+			visited[i] = true
+		}
 		for qi := 0; qi < len(q); qi++ {
 			for _, j := range deps[q[qi]] {
 				if !visited[j] {
@@ -186,7 +190,10 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		// Compute the unique size.
 		// A package is not unique in the ith package if it has an rdep that is already shared or is outside the visited packages.
 		var uniqueSize int64
-		for _, j := range q {
+		for _, j := range q[:initialQueueSize] {
+			uniqueSize += pkgs[j].Size
+		}
+		for _, j := range q[initialQueueSize:] {
 			for _, k := range rdeps[j] {
 				if shared[k] || !visited[k] {
 					shared[j] = true
@@ -200,12 +207,42 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		return uniqueSize
 	}
 
+	if flagset.NArg() > 0 {
+		for _, pkg := range flagset.Args() {
+			id, exists := pkgids[pkg]
+			if !exists {
+				return fmt.Errorf("package %s not installed", pkg)
+			}
+			q = append(q, id)
+		}
+		bfs()
+		var (
+			sharedsize int64
+			uniquesize int64
+			sharedpkgs = make([]string, 0, n) // dependencies that other packages also have
+			uniquepkgs = make([]string, 0, n) // dependencies unique to the arguments
+		)
+		for i, pkg := range pkgs {
+			if shared[i] {
+				sharedsize += pkg.Size
+				sharedpkgs = append(sharedpkgs, pkg.Name)
+			} else if visited[i] {
+				uniquesize += pkg.Size
+				uniquepkgs = append(uniquepkgs, pkg.Name)
+			}
+		}
+		fmt.Fprintf(w, "shared dependencies (%s): %s\n\n", humanize(sharedsize), strings.Join(sharedpkgs, " "))
+		fmt.Fprintf(w, "unique dependencies (%s): %s\n\n", humanize(uniquesize), strings.Join(uniquepkgs, " "))
+		return nil
+	}
+
+	// No args mode.
 	// For each top level unexpected package compute the total and unique usage via a breadth first search.
 	for i := range n {
 		if len(rdeps[i]) > 0 || expected(pkgs[i].Name) {
 			continue
 		}
-		q, visited[i] = append(q[:0], pkgid(i)), true
+		q = append(q[:0], pkgid(i))
 		unique[i] = bfs()
 
 		// Reset the arrays for the next iteration.

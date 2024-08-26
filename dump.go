@@ -63,16 +63,18 @@ func dump(ctx context.Context) error {
 		add("badflagorder", "glibc", "-dump_packages")
 		add("noargs")
 		add("packages", "-dump_packages")
-		add("trim1", "fancyapp")
-		add("trim2", "glibc")
-		add("trim3", "fancyapp", "glibc")
 
 		if testfile == "archsmall" {
 			add("cfgbadarg", "-trimfile=nonexistent_pkgtrim", "-dump_config")
 			add("cfgparse", "-trimfile=tricky_pkgtrim", "-dump_config")
+			add("trim1", "fancyapp")
+			add("trim2", "glibc")
+			add("trim3", "fancyapp", "glibc")
+			add("trim4", "fancyapp", "glibc", "nonexistent")
 		}
 		if testfile == "archlarge" {
 			add("trimmed", "-trimfile=pkgtrim.config")
+			add("trim1", "clang")
 		}
 	}
 
