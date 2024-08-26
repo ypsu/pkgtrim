@@ -71,6 +71,9 @@ func dump(ctx context.Context) error {
 			add("cfgbadarg", "-trimfile=nonexistent_pkgtrim", "-dump_config")
 			add("cfgparse", "-trimfile=tricky_pkgtrim", "-dump_config")
 		}
+		if testfile == "archlarge" {
+			add("trimmed", "-trimfile=pkgtrim.config")
+		}
 	}
 
 	d.Run(ctx)

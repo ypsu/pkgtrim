@@ -1,3 +1,20 @@
+== /home/user/pkgtrim.config
+# base packages
+archlinuxarm-keyring base ca-certificates firmware-raspberrypi linux-aarch64 uboot-raspberrypi
+man-db man-pages openssh sudo
+
+# basic tools
+moreutils mutt tmux vim wget xclip xorg-xauth
+
+# dev tools
+go go-tools revive strace
+clang git inotify-tools make perf
+js-beautify
+
+# cfg tools
+libxss
+pwgen
+
 == /var/lib/pacman/local/acl-2.3.2-1/desc
 %NAME%
 acl

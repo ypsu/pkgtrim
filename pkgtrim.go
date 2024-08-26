@@ -139,6 +139,12 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		}
 		return nil
 	}
+	expected := func(pkg string) bool {
+		if _, exists := trimconfig[pkg]; exists {
+			return true
+		}
+		return false
+	}
 
 	// To keep things efficient, the main loop only works on []int32 arrays.
 	type pkgid int32
@@ -165,9 +171,9 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		}
 	}
 
-	// For each top level package compute the total and unique usage via a breadth first search.
+	// For each top level unexpected package compute the total and unique usage via a breadth first search.
 	for i := range n {
-		if len(rdeps[i]) > 0 {
+		if len(rdeps[i]) > 0 || expected(pkgs[i].Name) {
 			continue
 		}
 		q := append(q, pkgid(i))
@@ -210,7 +216,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 
 	for _, id := range sizeorder {
 		pkg := pkgs[id]
-		if len(rdeps[id]) > 0 {
+		if len(rdeps[id]) > 0 || expected(pkg.Name) {
 			continue
 		}
 		fmt.Fprintf(w, "%s %-24s %s\n", humanize(unique[id]), pkg.Name, pkg.Desc)
