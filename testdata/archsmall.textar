@@ -41,9 +41,9 @@ somepkg1
 somepkg2 somepkg3
 # comment 2
 # comment 3
-somepkg4
+some*kg4
 !seq 5
-somepkg5
+some*kg5
 
 !echo -e '# subprocess comment\nsubprocess_pkg'
 !echo '!echo recursive_pkg'

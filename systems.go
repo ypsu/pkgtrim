@@ -18,7 +18,14 @@ type Package struct {
 
 // PackageSystem is the interface that various package managers must implement.
 type PackageSystem interface {
+	// Packages returns all the installed packages in the system.
 	Packages() ([]Package, error)
+
+	// Remove generates a command that removes the specified packages.
+	Remove(pkgs []string) []string
+
+	// Remove generates a command that installs the specified packages.
+	Install(pkgs []string) []string
 }
 
 // NewPackageSystem creates a new PackageSystem based on the files found in the passed in filesystem.
@@ -38,6 +45,22 @@ type archlinux struct {
 
 type debian struct {
 	rootfs fs.FS
+}
+
+func (s archlinux) Remove(pkgs []string) []string {
+	return append([]string{"sudo", "pacman", "-R"}, pkgs...)
+}
+
+func (s archlinux) Install(pkgs []string) []string {
+	return append([]string{"sudo", "pacman", "-S"}, pkgs...)
+}
+
+func (s debian) Remove(pkgs []string) []string {
+	return append([]string{"sudo", "apt", "remove"}, pkgs...)
+}
+
+func (s debian) Install(pkgs []string) []string {
+	return append([]string{"sudo", "apt", "install"}, pkgs...)
 }
 
 func (s archlinux) Packages() ([]Package, error) {

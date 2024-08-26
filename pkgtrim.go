@@ -99,8 +99,11 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	defaultTrimfile := filepath.Join(os.Getenv("HOME"), ".pkgtrim")
 	var (
 		flagset          = flag.NewFlagSet("pkgtrim", flag.ContinueOnError)
+		flagDryrun       = flagset.Bool("dryrun", false, "Don't execute the -remove or -install commands.")
 		flagDumpConfig   = flagset.Bool("dump_config", false, "Debug option: if true then dump the parsed config.")
 		flagDumpPackages = flagset.Bool("dump_packages", false, "Debug option: if true then dump the list of packages and dependencies pkgtrim detected.")
+		flagInstall      = flagset.Bool("install", false, "Install the packages specified in .pkgtrim.")
+		flagRemove       = flagset.Bool("remove", false, "Remove the selected packages and their unique dependencies or all unintentional packages and their dependencies if no arguments.")
 		flagTestFS       = flagset.String("testfs", "", "Mock the filesystem with this textar file instead of using the real filesystem.")
 		flagTrace        = flagset.Bool("trace", false, "If true, there must be two arguments, [package] and [dependency] and pkgtrim generates a dependency graph between the two. Pipe the output to 'dot -Tx11' to visualize the graph.")
 		flagTrimfile     = flagset.String("trimfile", defaultTrimfile, "The config file.")
@@ -175,6 +178,42 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 			deps[i][j] = pkgids[d]
 			rdeps[pkgids[d]] = append(rdeps[pkgids[d]], pkgid(i))
 		}
+	}
+
+	// Handle -install.
+	if *flagInstall {
+		ignored := make([]string, 0, 64)
+		toinstall := make([]string, 0, 64)
+		for _, pkg := range slices.Sorted(maps.Keys(foundPackages)) {
+			if _, exists := pkgids[pkg]; exists {
+				continue
+			}
+			if strings.IndexByte(pkg, '*') == -1 {
+				toinstall = append(toinstall, pkg)
+			} else {
+				ignored = append(ignored, pkg)
+			}
+		}
+		if len(ignored) > 0 {
+			fmt.Fprintf(w, "Warning, ignoring globs: %s.\n", strings.Join(ignored, " "))
+		}
+		if len(toinstall) == 0 {
+			fmt.Fprintln(w, "Nothing new to install.")
+			return nil
+		}
+		argv := system.Install(toinstall)
+		fmt.Fprintln(w, strings.Join(argv, " "))
+		if *flagDryrun {
+			return nil
+		}
+		cmd := exec.Command(argv[0], argv[1:]...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("install packages: %v", err)
+		}
+		return nil
 	}
 
 	// Runs breadth first search.
@@ -301,11 +340,27 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		fmt.Fprintf(w, "unique dependencies (%s): %s\n\n", humanize(uniquesize), strings.Join(uniquepkgs, " "))
 		fmt.Fprintf(w, "intentional top level rdeps: %s\n\n", strings.Join(intentionalpkgs, " "))
 		fmt.Fprintf(w, "unintentional top level rdeps: %s\n\n", strings.Join(unintentionalpkgs, " "))
+
+		if *flagRemove {
+			argv := system.Remove(uniquepkgs)
+			fmt.Fprintln(w, strings.Join(argv, " "))
+			if *flagDryrun {
+				return nil
+			}
+			cmd := exec.Command(argv[0], argv[1:]...)
+			cmd.Stdin = os.Stdin
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				return fmt.Errorf("remove selected packages: %v", err)
+			}
+		}
 		return nil
 	}
 
 	// No args mode.
 	// For each top level undocumented package compute the total and unique usage via a breadth first search.
+	toremove := make(map[string]struct{}, 64)
 	for i := range n {
 		if len(rdeps[i]) > 0 || intentionalRE.MatchString(pkgs[i].Name) {
 			continue
@@ -315,6 +370,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 
 		// Reset the arrays for the next iteration.
 		for _, j := range q {
+			toremove[pkgs[j].Name] = struct{}{}
 			visited[j], shared[j] = false, false
 		}
 	}
@@ -333,6 +389,21 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 			continue
 		}
 		fmt.Fprintf(w, "%s %-24s %s\n", humanize(unique[id]), pkg.Name, pkg.Desc)
+	}
+
+	if *flagRemove {
+		argv := system.Remove(slices.Sorted(maps.Keys(toremove)))
+		fmt.Fprintln(w, strings.Join(argv, " "))
+		if *flagDryrun {
+			return nil
+		}
+		cmd := exec.Command(argv[0], argv[1:]...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("remove packages: %v", err)
+		}
 	}
 	return nil
 }

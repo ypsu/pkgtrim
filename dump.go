@@ -71,8 +71,14 @@ func dump(ctx context.Context) error {
 			add("trim2", "glibc")
 			add("trim3", "fancyapp", "glibc")
 			add("trim4", "fancyapp", "glibc", "nonexistent")
+			add("install", "-install", "-dryrun", "-trimfile=tricky_pkgtrim")
+			add("removeall", "-remove", "-dryrun")
+			add("remove", "-remove", "-dryrun", "fancylib")
 		}
 		if testfile == "archlarge" {
+			add("removeall", "-remove", "-dryrun")
+			add("remove", "-remove", "-dryrun", "-trimfile=pkgtrim.config")
+			add("remove1", "-remove", "-dryrun", "-trimfile=pkgtrim.config", "clang")
 			add("trimmed", "-trimfile=pkgtrim.config")
 			add("trimmed2", "-trimfile=pkgtrim.config", "gmp")
 			add("trim1", "clang")
