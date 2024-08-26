@@ -150,7 +150,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	type pkgid int32
 	var (
 		n       = len(pkgs)                 // number of packages
-		q       = make([]pkgid, n)          // queue for the breadth first search
+		q       = make([]pkgid, 0, n)       // queue for the breadth first search
 		visited = make([]bool, n)           // marker for the bfs
 		shared  = make([]bool, n)           // marker for determining the unique size
 		deps    = make([][]pkgid, n)        // direct dependencies of a package
@@ -171,13 +171,10 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		}
 	}
 
-	// For each top level unexpected package compute the total and unique usage via a breadth first search.
-	for i := range n {
-		if len(rdeps[i]) > 0 || expected(pkgs[i].Name) {
-			continue
-		}
-		q := append(q, pkgid(i))
-		visited[i] = true
+	// Runs breadth first search.
+	// q must be initialized with the initial entries.
+	// Returns the unique size.
+	bfs := func() int64 {
 		for qi := 0; qi < len(q); qi++ {
 			for _, j := range deps[q[qi]] {
 				if !visited[j] {
@@ -188,7 +185,8 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 
 		// Compute the unique size.
 		// A package is not unique in the ith package if it has an rdep that is already shared or is outside the visited packages.
-		for _, j := range q[1:] {
+		var uniqueSize int64
+		for _, j := range q {
 			for _, k := range rdeps[j] {
 				if shared[k] || !visited[k] {
 					shared[j] = true
@@ -196,9 +194,19 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 				}
 			}
 			if !shared[j] {
-				unique[i] += pkgs[i].Size
+				uniqueSize += pkgs[j].Size
 			}
 		}
+		return uniqueSize
+	}
+
+	// For each top level unexpected package compute the total and unique usage via a breadth first search.
+	for i := range n {
+		if len(rdeps[i]) > 0 || expected(pkgs[i].Name) {
+			continue
+		}
+		q, visited[i] = append(q[:0], pkgid(i)), true
+		unique[i] = bfs()
 
 		// Reset the arrays for the next iteration.
 		for _, j := range q {
