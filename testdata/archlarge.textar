@@ -1,8 +1,8 @@
 == /home/user/pkgtrim.config
 # base packages
-archlinuxarm-keyring base ca-certificates firmware-raspberrypi linux-aarch64 uboot-raspberrypi
+archlinuxarm-keyring base ca-certificates *raspberrypi* linux-aarch64
 man-db man-pages openssh sudo
-wireless*
+polkit  # allow administration as unprivileged user
 
 # basic tools
 moreutils mutt tmux vim wget xclip xorg-xauth

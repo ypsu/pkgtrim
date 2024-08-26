@@ -77,6 +77,9 @@ func dump(ctx context.Context) error {
 			add("install", "-install", "-dryrun", "-f=tricky_pkgtrim")
 			add("removeall", "-remove", "-dryrun")
 			add("remove", "-remove", "-dryrun", "fancylib")
+			add("removewithcfg1", "-remove", "-dryrun", "-f=tricky_pkgtrim")
+			add("removewithcfg2", "-remove", "-dryrun", "-f=tricky_pkgtrim", "fancyapp")
+			add("removewithcfg3", "-remove", "-dryrun", "-f=tricky_pkgtrim", "fancyapp", "otherapp")
 		}
 		if testfile == "archlarge" {
 			add("removeall", "-remove", "-dryrun")
