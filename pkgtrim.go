@@ -357,7 +357,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		}
 		traverse(src)
 		if !visited[dst] {
-			return fmt.Errorf("package %s is not a dependency of %s", flagset.Arg(0), flagset.Arg(1))
+			return fmt.Errorf("package %s is not a dependency of %s", flagset.Arg(1), flagset.Arg(0))
 		}
 		fmt.Fprintln(w, "strict digraph {")
 		path := make([]string, 0, 64)
