@@ -52,5 +52,8 @@ some*kg5
 # But fancylib and glibc should be still kept.
 fancylib
 
+== /home/user/broken_pkgtrim
+!cat nonexistent.$(echo apple)
+
 == /home/user/all_pkgtrim
 fancyapp fancylib otherapp glibc

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"cmp"
 	"flag"
 	"fmt"
@@ -47,6 +48,9 @@ func parseconfig(found map[string]struct{}, depth int, cfg []byte) error {
 	for i, line := range strings.Split(string(cfg), "\n") {
 		if strings.HasPrefix(line, "!") {
 			output, err := exec.Command("sh", "-c", line[1:]).Output()
+			if err, ok := err.(*exec.ExitError); ok {
+				return fmt.Errorf("execute line %d: %q: %v, stderr: %s", i+1, line[1:], err, bytes.TrimSpace(err.Stderr))
+			}
 			if err != nil {
 				return fmt.Errorf("execute line %d: %q: %v", i+1, line[1:], err)
 			}

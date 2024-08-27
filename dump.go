@@ -66,6 +66,7 @@ func dump(ctx context.Context) error {
 
 		if testfile == "archsmall" {
 			add("cfgbadarg", "-f=nonexistent_pkgtrim", "-dump_config")
+			add("cfgbroken", "-f=broken_pkgtrim", "-dump_config")
 			add("cfgparse", "-f=tricky_pkgtrim", "-dump_config")
 			add("clean", "-f=all_pkgtrim")
 			add("graph0", "-graph")
