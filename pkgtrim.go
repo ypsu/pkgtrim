@@ -109,6 +109,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		flagDryrun       = flagset.Bool("dryrun", false, "Don't execute the -remove or -install commands.")
 		flagDumpConfig   = flagset.Bool("dump_config", false, "Debug option: if true then dump the parsed config.")
 		flagDumpPackages = flagset.Bool("dump_packages", false, "Debug option: if true then dump the list of packages and dependencies pkgtrim detected.")
+		flagGraph        = flagset.Bool("graph", false, "Show the dependency graph of the arguments. Pipe the output to 'dot -Tx11' to visualize the graph.")
 		flagInstall      = flagset.Bool("install", false, "Install the packages specified in .pkgtrim.")
 		flagRemove       = flagset.Bool("remove", false, "Remove the selected packages and their unique dependencies or all unintentional packages and their dependencies if no arguments.")
 		flagTestFS       = flagset.String("testfs", "", "Mock the filesystem with this textar file instead of using the real filesystem.")
@@ -302,6 +303,43 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("remove selected packages: %v", err)
 		}
+		return nil
+	}
+
+	if *flagGraph {
+		if flagset.NArg() == 0 {
+			return fmt.Errorf("-graph requires some arguments, got none")
+		}
+		for _, pkg := range flagset.Args() {
+			p, exists := pkgids[pkg]
+			if !exists {
+				return fmt.Errorf("package %s not found", pkg)
+			}
+			traverse(p)
+		}
+		fmt.Fprintln(w, "digraph {")
+		for i := range n {
+			if !visited[i] {
+				continue
+			}
+			visited[i] = false
+			for _, j := range deps[i] {
+				fmt.Fprintf(w, "  \"%s\" -> \"%s\"\n", pkgs[i].Name, pkgs[j].Name)
+			}
+		}
+		deps, rdeps, toporder = rdeps, deps, toporder[:0]
+		for _, pkg := range flagset.Args() {
+			traverse(pkgids[pkg])
+		}
+		for i := range n {
+			if !visited[i] {
+				continue
+			}
+			for _, j := range deps[i] {
+				fmt.Fprintf(w, "  \"%s\" -> \"%s\"\n", pkgs[j].Name, pkgs[i].Name)
+			}
+		}
+		fmt.Fprintln(w, "}")
 		return nil
 	}
 
