@@ -12,9 +12,8 @@ Removing the wrong package might break your system!
 - With no arguments: lists all unintentionally installed top level packages and their size including the unique dependencies required only by the given top level package.
   Top level packages are the packages that no other packages depend on.
 - With a list of packages: lists all shared dependencies, lists all unique dependencies, lists the top level reverse dependencies of the given package set.
-- Record the intended packages into ~/.pkgtrim.
-  List the packages that are meant to be installed, use # comments to record why they are meant to be installed.
-  It accepts globs too.
+- List the "intended packages" (packages meant to be installed) into ~/.pkgtrim.
+  Use # comments to record why they are meant to be installed.
 - Use `-remove` to remove all unintended or a selected list of packages and their unique dependencies.
   This is the trimming part.
 - Use `-install` to install all intentional packages from ~/.pkgtrim.
@@ -44,17 +43,17 @@ $ pkgtrim
   817.1 MB linux-aarch64            The Linux Kernel and modules - AArch64 multi-platform
 ```
 
-Here's pkgtrim's output for `libedit` with an empty ~/.pkgtrim file:
+Here's pkgtrim's output for `curl` with an empty ~/.pkgtrim file:
 
 ```
-$ pkgtrim libedit
-shared dependencies (  227.9 MB): filesystem gcc-libs glibc iana-etc linux-api-headers ncurses tzdata
+$ pkgtrim curl
+shared dependencies (  337.8 MB): acl attr audit bash brotli ca-certificates-utils coreutils e2fsprogs filesystem findutils gcc-libs gdbm glibc gmp iana-etc keyutils krb5 libcap libcap-ng libevent libffi libgcrypt libgpg-error libidn2 libldap libnghttp2 libnghttp3 libnsl libp11-kit libpsl libsasl libtasn1 libtirpc libunistring libverto libxcrypt linux-api-headers lmdb lz4 ncurses openssl p11-kit pam pambase readline sqlite systemd-libs tzdata util-linux-libs xz zlib zstd
 
-unique dependencies (    0.3 MB): libedit
+unique dependencies (    2.6 MB): curl libssh2
 
 intentional top level rdeps:
 
-unintentional top level rdeps: clang gnuplot openssh
+unintentional top level rdeps: archlinuxarm-keyring base clang git gnuplot linux-aarch64 mutt perf
 ```
 
 Here's my ~/.pkgtrim file on my raspberry pi 4:
@@ -124,7 +123,7 @@ Requires Go.
 Make sure `$GOBIN` is in your `$PATH` and then run:
 
 ```
-go install github.com/ypsu/pkgtrim
+go install github.com/ypsu/pkgtrim@latest
 ```
 
 ## Versioning

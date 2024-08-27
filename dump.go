@@ -2,7 +2,7 @@
 
 // Run this effdump like this:
 //
-//	go run -tags=test github.com/ypsu/pkgtrim -force
+//	go run -tags=test github.com/ypsu/pkgtrim
 
 package main
 
