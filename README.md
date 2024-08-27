@@ -106,7 +106,7 @@ $ go run github.com/ypsu/pkgtrim -trace vim xz | dot -Tx11
 A .pkgtrim file should just list the packages that meant to be installed along with a comment.
 The comment marker is #, everything is ignored after until the end of line, put comments there, see above example.
 
-If a line begins with `!` pkgtrim interprets the rest of the line as a shell command to run and parse its standard output as if it was part of the .pkgtrim file.
+If a line begins with `!` pkgtrim interprets the rest of the line as a shell command to run and parses its standard output as if it was part of the .pkgtrim file.
 Can be used to make the .pkgtrim file more flexible.
 For example on some systems you might have a host specific .pkgtrim fragment.
 You could load it from ~/.pkgtrim like this (the `|| true` is needed to not error out if the file doesn't exist):
