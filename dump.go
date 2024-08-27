@@ -58,13 +58,13 @@ func dump(ctx context.Context) error {
 		}
 		testfile = strings.TrimSuffix(filepath.Base(filename), ".textar")
 		rootfs = textar.FS(textar.Parse(data))
-		add("help", "-help")
-		add("badflag", "-blah")
-		add("badflagorder", "glibc", "-dump_packages")
 		add("noargs")
 		add("packages", "-dump_packages")
 
 		if testfile == "archsmall" {
+			add("help", "-help")
+			add("badflag", "-blah")
+			add("badflagorder", "glibc", "-dump_packages")
 			add("cfgbadarg", "-f=nonexistent_pkgtrim", "-dump_config")
 			add("cfgbroken", "-f=broken_pkgtrim", "-dump_config")
 			add("cfgparse", "-f=tricky_pkgtrim", "-dump_config")
