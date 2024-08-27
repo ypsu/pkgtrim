@@ -112,7 +112,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		flagset          = flag.NewFlagSet("pkgtrim", flag.ContinueOnError)
 		flagDryrun       = flagset.Bool("dryrun", false, "Don't execute the -remove or -install commands.")
 		flagDumpConfig   = flagset.Bool("dump_config", false, "Debug option: if true then dump the parsed config.")
-		flagDumpPackages = flagset.Bool("dump_packages", false, "Debug option: if true then dump the list of packages and dependencies pkgtrim detected.")
+		flagDumpPackages = flagset.Bool("dump_packages", false, "Debug option: if true then dump the list of packages pkgtrim detected. Filter to specific packages via arguments.")
 		flagGraph        = flagset.Bool("graph", false, "Show the dependency graph of the arguments. Pipe the output to 'dot -Tx11' to visualize the graph.")
 		flagInstall      = flagset.Bool("install", false, "Install the packages specified in .pkgtrim.")
 		flagRemove       = flagset.Bool("remove", false, "Remove the selected packages and their unique dependencies or all unintentional packages and their dependencies if no arguments.")
@@ -148,8 +148,14 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	slices.SortFunc(pkgs, func(a, b Package) int { return cmp.Compare(a.Name, b.Name) })
 
 	if *flagDumpPackages {
+		filter := regexp.MustCompile(".*")
+		if flagset.NArg() > 0 {
+			filter = makeRE(flagset.Args()...)
+		}
 		for _, pkg := range pkgs {
-			fmt.Fprintf(w, "%s %d %s\n", pkg.Name, pkg.Size, strings.Join(pkg.Deps, " "))
+			if filter.MatchString(pkg.Name) {
+				fmt.Fprintf(w, "%s %d %s\n", pkg.Name, pkg.Size, strings.Join(pkg.Deps, " "))
+			}
 		}
 		return nil
 	}

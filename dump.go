@@ -81,6 +81,7 @@ func dump(ctx context.Context) error {
 			add("multiaction2", "-install", "-trace")
 			add("multiaction3", "-remove", "-trace")
 			add("install", "-install", "-dryrun", "-f=tricky_pkgtrim")
+			add("filteredpackages", "-dump_packages", "fancylib", "otherapp")
 			add("removeall", "-remove", "-dryrun")
 			add("remove", "-remove", "-dryrun", "fancylib")
 			add("removewithcfg1", "-remove", "-dryrun", "-f=tricky_pkgtrim")
