@@ -100,6 +100,7 @@ func (s archlinux) Packages() ([]Package, error) {
 			switch hdrname {
 			case "NAME":
 				pkg.Name = value
+				provider[pkg.Name] = pkg.Name
 			case "DESC":
 				pkg.Desc, _, _ = strings.Cut(value, "\n")
 			case "SIZE":
@@ -116,15 +117,9 @@ func (s archlinux) Packages() ([]Package, error) {
 					}
 					// Remove the version bit from instances like "libargon2.so=1-64".
 					line, _, _ = strings.Cut(line, "=")
-					if _, ok := provider[line]; ok {
-						return nil, fmt.Errorf("unique provider check: both %q and %q provide %q", provider[line], pkg.Name, line)
-					}
 					provider[line] = pkg.Name
 				}
 			}
-		}
-		if pkg.Size > 0 {
-			provider[pkg.Name] = pkg.Name
 		}
 		if len(depends) == len(pkgs) {
 			// Add an empty depends sections for packages that didn't have one.
