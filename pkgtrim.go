@@ -264,6 +264,47 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		return uniqueSize
 	}
 
+	// Removes these packages but keeps the intentional ones.
+	remove := func(toremove []string) error {
+		toporder = toporder[:0]
+		for i := range n {
+			visited[i] = false
+		}
+		for _, pkg := range toremove {
+			if intentionalRE.MatchString(pkg) {
+				traverse(pkgids[pkg])
+			}
+		}
+		tokeep := make([]string, 0, 64)
+		toremove = slices.DeleteFunc(toremove, func(pkg string) bool {
+			if visited[pkgids[pkg]] {
+				tokeep = append(tokeep, pkg)
+				return true
+			}
+			return false
+		})
+		if len(tokeep) > 0 {
+			fmt.Fprintf(w, "Keeping packages intended directly or indirectly by %s: %s.\n\n", *flagTrimfile, strings.Join(tokeep, " "))
+		}
+		if len(toremove) == 0 {
+			return fmt.Errorf("nothing to remove")
+		}
+		argv := system.Remove(toremove)
+		fmt.Fprintln(w, strings.Join(argv, " "))
+		if *flagDryrun {
+			return nil
+		}
+		fmt.Fprintln(w)
+		cmd := exec.Command(argv[0], argv[1:]...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("remove selected packages: %v", err)
+		}
+		return nil
+	}
+
 	if *flagTrace {
 		if flagset.NArg() != 2 {
 			return fmt.Errorf("-trace requires exactly 2 arguments, got %d", flagset.NArg())
@@ -339,7 +380,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		for _, i := range seed {
 			traverse(i)
 		}
-		deps, rdeps = rdeps, deps
+		deps, rdeps, toporder = rdeps, deps, toporder[:0]
 		for i, pkg := range pkgs {
 			if !visited[i] || len(rdeps[i]) > 0 {
 				continue
@@ -357,18 +398,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		fmt.Fprintf(w, "unintentional top level rdeps: %s\n\n", strings.Join(unintentionalpkgs, " "))
 
 		if *flagRemove {
-			argv := system.Remove(uniquepkgs)
-			fmt.Fprintln(w, strings.Join(argv, " "))
-			if *flagDryrun {
-				return nil
-			}
-			cmd := exec.Command(argv[0], argv[1:]...)
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				return fmt.Errorf("remove selected packages: %v", err)
-			}
+			return remove(uniquepkgs)
 		}
 		return nil
 	}
@@ -418,20 +448,8 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 				toremove = append(toremove, pkgs[i].Name)
 			}
 		}
-
 		slices.Sort(toremove)
-		argv := system.Remove(toremove)
-		fmt.Fprintln(w, strings.Join(argv, " "))
-		if *flagDryrun {
-			return nil
-		}
-		cmd := exec.Command(argv[0], argv[1:]...)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("remove packages: %v", err)
-		}
+		return remove(toremove)
 	}
 	return nil
 }
