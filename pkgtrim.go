@@ -405,10 +405,12 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 
 	// No args mode.
 	// For each top level undocumented package compute the total and unique usage via a breadth first search.
+	cnt := 0
 	for i := range n {
 		if len(rdeps[i]) > 0 || intentionalRE.MatchString(pkgs[i].Name) {
 			continue
 		}
+		cnt++
 		traverse(pkgid(i))
 		unique[i] = computeUnique(pkgid(i))
 
@@ -417,6 +419,10 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 			visited[j], shared[j] = false, false
 		}
 		toporder = toporder[:0]
+	}
+	if cnt == 0 && !*flagRemove {
+		fmt.Fprintln(w, "No unintenional packages found. Use `-f /dev/null` to print all.")
+		return nil
 	}
 
 	sizeorder := make([]pkgid, n)

@@ -51,3 +51,6 @@ some*kg5
 # The removewithcfg tests remove fancyapp and otherapp.
 # But fancylib and glibc should be still kept.
 fancylib
+
+== /home/user/all_pkgtrim
+fancyapp fancylib otherapp glibc

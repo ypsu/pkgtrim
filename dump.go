@@ -67,6 +67,7 @@ func dump(ctx context.Context) error {
 		if testfile == "archsmall" {
 			add("cfgbadarg", "-f=nonexistent_pkgtrim", "-dump_config")
 			add("cfgparse", "-f=tricky_pkgtrim", "-dump_config")
+			add("clean", "-f=all_pkgtrim")
 			add("trim1", "fancyapp")
 			add("trim2", "glibc")
 			add("trim3", "fancyapp", "glibc")
