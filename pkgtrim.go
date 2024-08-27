@@ -322,6 +322,9 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 			traverse(p)
 		}
 		fmt.Fprintln(w, "digraph {")
+		for _, arg := range flagset.Args() {
+			fmt.Fprintf(w, "  \"%s\" [style=filled fillcolor=lightgray]\n", arg)
+		}
 		for i := range n {
 			if !visited[i] {
 				continue
@@ -363,7 +366,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		if !visited[dst] {
 			return fmt.Errorf("package %s is not a dependency of %s", flagset.Arg(1), flagset.Arg(0))
 		}
-		fmt.Fprintln(w, "strict digraph {")
+		fmt.Fprintf(w, "strict digraph {\n  \"%s\" [style=filled fillcolor=lightgray]\n  \"%s\" [style=filled fillcolor=lightgray]\n", flagset.Arg(0), flagset.Arg(1))
 		path := make([]string, 0, 64)
 		var findpaths func(pkgid)
 		findpaths = func(pkg pkgid) {
