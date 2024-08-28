@@ -120,7 +120,7 @@ base tmux zsh  # some packages shared on all machines
 ## Installation
 
 Requires Go.
-Make sure `$GOBIN` is in your `$PATH` and then run:
+Make sure `~/go/bin` (or whatever your `$GOPATH/bin` or `$GOBIN` is) is in your `$PATH` and then run:
 
 ```
 go install github.com/ypsu/pkgtrim@latest
