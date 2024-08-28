@@ -84,7 +84,7 @@ pwgen
 Here's a trace between two packages:
 
 ```
-$ go run github.com/ypsu/pkgtrim -trace vim xz
+$ pkgtrim -trace vim xz
 strict digraph {
   "gdb" [style=filled fillcolor=lightgray]
   "gmp" [style=filled fillcolor=lightgray]
@@ -96,7 +96,7 @@ strict digraph {
 Here's the graphviz visualization of the above:
 
 ```
-$ go run github.com/ypsu/pkgtrim -trace vim xz | dot -Tx11
+$ pkgtrim -trace vim xz | dot -Tx11
 ```
 
 ![trace visualization](trace.png)
