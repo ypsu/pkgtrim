@@ -23,6 +23,10 @@ Removing the wrong package might break your system!
 - Use `-graph` to print all dependencies and reverse dependencies of a set of nodes in a graph form.
   Pipe it to `dot -Tx11` to visualize the graph.
 
+Note that commands like `pacman -Qeq` (list explicitly installed packages) or `pacman -Qdtq` (list unneeded dependencies) already provide some of this functionality.
+Similar commands exist for Ubuntu.
+The big difference in pkgtrim is that the "explicitness" bit for a package is not stored in the package database but in a dotfile in the user's home directory.
+
 ## Examples
 
 Here's my raspberry pi 4 with no arguments with an empty ~/.pkgtrim file:
