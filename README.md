@@ -65,7 +65,7 @@ archlinuxarm-keyring base ca-certificates linux-aarch64 *raspberrypi* uboot-tool
 man-db man-pages openssh sudo
 inetutils  # for hostname and telnet
 net-tools  # for ifconfig
-polkit
+polkit     # allow administration as unprivileged user
 
 # basic tools
 moreutils mutt openbsd-netcat tmux vim wget which xclip xorg-xauth
