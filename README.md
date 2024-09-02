@@ -123,9 +123,15 @@ base tmux zsh  # some packages shared on all machines
 
 ## Installation
 
+To try it without installation:
+
+```
+go run github.com/ypsu/pkgtrim@latest
+```
+
 Available in AUR as pkgtrim, use something like `yay -Sy pkgtrim` to install it.
 
-Alternatively install directly with Go.
+Alternatively install it directly with Go.
 Make sure `~/go/bin` (or whatever your `$GOPATH/bin` or `$GOBIN` is) is in your `$PATH` and then run:
 
 ```
