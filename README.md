@@ -132,6 +132,13 @@ Make sure `~/go/bin` (or whatever your `$GOPATH/bin` or `$GOBIN` is) is in your 
 go install github.com/ypsu/pkgtrim@latest
 ```
 
+## Similar tools
+
+pkgtrim is quite simplistic and hacky.
+Here are more mature package management tools:
+
+- https://github.com/CyberShadow/aconfmgr
+
 ## Versioning
 
 Uses [https://ypsu.github.io/featver](https://ypsu.github.io/featver) as its versioning scheme.
