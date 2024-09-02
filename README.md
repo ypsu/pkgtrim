@@ -123,7 +123,9 @@ base tmux zsh  # some packages shared on all machines
 
 ## Installation
 
-Requires Go.
+Available in AUR as pkgtrim, use something like `yay -Sy pkgtrim` to install it.
+
+Alternatively install directly with Go.
 Make sure `~/go/bin` (or whatever your `$GOPATH/bin` or `$GOBIN` is) is in your `$PATH` and then run:
 
 ```
