@@ -137,7 +137,7 @@ go install github.com/ypsu/pkgtrim@latest
 pkgtrim is quite simplistic and hacky.
 Here are more mature package management tools:
 
-- https://github.com/CyberShadow/aconfmgr
+- [https://github.com/CyberShadow/aconfmgr](https://github.com/CyberShadow/aconfmgr)
 
 ## Versioning
 
