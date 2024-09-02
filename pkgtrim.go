@@ -121,6 +121,11 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		flagTrimfile     = flagset.String("f", defaultTrimfile, "The config file.")
 	)
 	flagset.SetOutput(w)
+	flagset.Usage = func() {
+		fmt.Fprintf(w, "pkgtrim - linux PacKaGe TRIMmer tool\n\nSee https://ypsu.github.io/pkgtrim/ for documentation.\nFlags:\n\n")
+		flagset.PrintDefaults()
+		fmt.Fprintln(w)
+	}
 	if err := flagset.Parse(args); err != nil {
 		return err
 	}
