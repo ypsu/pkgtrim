@@ -140,7 +140,7 @@ func (s archlinux) Packages() ([]Package, error) {
 				continue
 			}
 			// Remove the version bit from instances like "ca-certificates-utils>=20181109-3" and "libargon2.so=1-64".
-			d, _, _ = strings.Cut(d, ">=")
+			d, _, _ = strings.Cut(d, ">")
 			d, _, _ = strings.Cut(d, "=")
 			p, ok := provider[d]
 			if !ok {
