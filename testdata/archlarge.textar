@@ -14713,6 +14713,52 @@ glibc
 libnuma.so=1-64
 
 
+== /var/lib/pacman/local/odin-dev_2025_04-1/desc
+%NAME%
+odin
+
+%VERSION%
+dev_2025_04-1
+
+%BASE%
+odin
+
+%DESC%
+Data-oriented programming language
+
+%URL%
+https://odin-lang.org/
+
+%ARCH%
+aarch64
+
+%BUILDDATE%
+1744382110
+
+%INSTALLDATE%
+1746887944
+
+%PACKAGER%
+Arch Linux ARM Build System <builder+n1@archlinuxarm.org>
+
+%SIZE%
+192320979
+
+%LICENSE%
+BSD-3-Clause
+
+%VALIDATION%
+pgp
+
+%DEPENDS%
+clang
+llvm-libs
+python
+
+%XDATA%
+pkgtype=pkg
+
+
 == /var/lib/pacman/local/openbsd-netcat-1.226_1-2/desc
 %NAME%
 openbsd-netcat

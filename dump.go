@@ -95,6 +95,7 @@ func dump(ctx context.Context) error {
 			add("trimmed", "-f=pkgtrim.config")
 			add("trimmed2", "-f=pkgtrim.config", "gmp")
 			add("trim1", "clang")
+			add("trim2", "-f=pkgtrim.config", "odin") // should not have clang as a unique dependency because clang is in .pkgtrim
 			add("tracebad0", "-trace")
 			add("tracebad1", "-trace", "gmp")
 			add("tracebad2", "-trace", "gmp", "gdb")
