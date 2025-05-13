@@ -270,7 +270,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 				continue
 			}
 			for _, j := range rdeps[i] {
-				if shared[j] || !visited[j] {
+				if shared[j] || !visited[j] || (!slices.Contains(seed, i) && intentional[i]) {
 					shared[i] = true
 					break
 				}
