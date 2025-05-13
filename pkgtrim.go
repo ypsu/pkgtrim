@@ -182,17 +182,18 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	}
 	intentionalRE := makeRE(slices.Collect(maps.Keys(foundPackages))...)
 
-	// To keep things efficient, keep things in []int32 arrays.
+	// To keep things efficient, keep things in integer arrays.
 	type pkgid int32
 	var (
-		n        = len(pkgs)                 // number of packages
-		toporder = make([]pkgid, 0, n)       // the topological order of the packages, built by traverse
-		visited  = make([]bool, n)           // marker for traverse
-		shared   = make([]bool, n)           // marker for determining the unique size
-		deps     = make([][]pkgid, n)        // direct dependencies of a package
-		rdeps    = make([][]pkgid, n)        // direct reverse dependencies of a package
-		pkgids   = make(map[string]pkgid, n) // map package names to a number
-		unique   = make([]int64, n)          // the total unique size used for each package
+		n           = len(pkgs)                 // number of packages
+		toporder    = make([]pkgid, 0, n)       // the topological order of the packages, built by traverse
+		visited     = make([]bool, n)           // marker for traverse
+		shared      = make([]bool, n)           // marker for determining the unique size
+		intentional = make([]bool, n)           // marker whether the package is intentional or not
+		deps        = make([][]pkgid, n)        // direct dependencies of a package
+		rdeps       = make([][]pkgid, n)        // direct reverse dependencies of a package
+		pkgids      = make(map[string]pkgid, n) // map package names to a number
+		unique      = make([]int64, n)          // the total unique size used for each package
 	)
 
 	// Compute deps and rdeps.
@@ -200,6 +201,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		pkgids[p.Name] = pkgid(i)
 	}
 	for i, p := range pkgs {
+		intentional[i] = intentionalRE.MatchString(p.Name)
 		deps[i] = make([]pkgid, len(p.Deps))
 		for j, d := range p.Deps {
 			deps[i][j] = pkgids[d]
@@ -287,7 +289,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 			visited[i] = false
 		}
 		for _, pkg := range toremove {
-			if intentionalRE.MatchString(pkg) {
+			if intentional[pkgids[pkg]] {
 				traverse(pkgids[pkg])
 			}
 		}
@@ -441,7 +443,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 			if !visited[i] || len(rdeps[i]) > 0 {
 				continue
 			}
-			if intentionalRE.MatchString(pkg.Name) {
+			if intentional[i] {
 				intentionalpkgs = append(intentionalpkgs, pkg.Name)
 			} else {
 				unintentionalpkgs = append(unintentionalpkgs, pkg.Name)
@@ -463,7 +465,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 	// For each top level undocumented package compute the total and unique usage via a breadth first search.
 	cnt := 0
 	for i := range n {
-		if len(rdeps[i]) > 0 || intentionalRE.MatchString(pkgs[i].Name) {
+		if len(rdeps[i]) > 0 || intentional[i] {
 			continue
 		}
 		cnt++
@@ -491,15 +493,15 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 
 	for _, id := range sizeorder {
 		pkg := pkgs[id]
-		if len(rdeps[id]) > 0 || intentionalRE.MatchString(pkg.Name) {
+		if len(rdeps[id]) > 0 || intentional[id] {
 			continue
 		}
 		fmt.Fprintf(w, "%s %-24s %s\n", humanize(unique[id]), pkg.Name, pkg.Desc)
 	}
 
 	if *flagRemove {
-		for i, pkg := range pkgs {
-			if len(rdeps[i]) == 0 && !intentionalRE.MatchString(pkg.Name) {
+		for i := range pkgs {
+			if len(rdeps[i]) == 0 && !intentional[i] {
 				traverse(pkgid(i))
 			}
 		}
