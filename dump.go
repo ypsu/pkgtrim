@@ -41,7 +41,8 @@ func dump(ctx context.Context) error {
 			result[1].Name = "result: fail"
 			result[1].Data = []byte(err.Error() + "\n")
 		}
-		d.Add(testfile+"/"+name, textar.Format(result))
+		archive := textar.Archive{Files: result}
+		d.Add(testfile+"/"+name, archive.Format())
 	}
 
 	wd = "/home/user"
@@ -57,7 +58,7 @@ func dump(ctx context.Context) error {
 			return err
 		}
 		testfile = strings.TrimSuffix(filepath.Base(filename), ".textar")
-		rootfs = textar.FS(textar.Parse(data))
+		rootfs = textar.Parse(data).FS()
 		add("noargs")
 		add("packages", "-dump_packages")
 

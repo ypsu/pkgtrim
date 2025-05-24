@@ -139,7 +139,7 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		if err != nil {
 			return fmt.Errorf("load testfs: %v", err)
 		}
-		rootfs = textar.FS(textar.Parse(data))
+		rootfs = textar.Parse(data).FS()
 	}
 
 	system, err := NewPackageSystem(rootfs)
