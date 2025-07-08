@@ -380,25 +380,21 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 			return fmt.Errorf("package %s is not a dependency of %s", flagset.Arg(1), flagset.Arg(0))
 		}
 		fmt.Fprintf(w, "strict digraph {\n  \"%s\" [style=filled fillcolor=lightgray]\n  \"%s\" [style=filled fillcolor=lightgray]\n", flagset.Arg(0), flagset.Arg(1))
-		path := make([]string, 0, 64)
-		var findpaths func(pkgid)
-		findpaths = func(pkg pkgid) {
-			if pkg == src {
-				slices.Reverse(path)
-				fmt.Fprintf(w, "  \"%s\"\n", strings.Join(path, "\" -> \""))
-				slices.Reverse(path)
+		rvisited := make([]bool, n)
+		var visit func(pkgid)
+		visit = func(pkg pkgid) {
+			if rvisited[pkg] || pkg == src {
 				return
 			}
+			rvisited[pkg] = true
 			for _, rdep := range rdeps[pkg] {
 				if visited[rdep] {
-					path = append(path, pkgs[rdep].Name)
-					findpaths(rdep)
-					path = path[:len(path)-1]
+					fmt.Fprintf(w, "  %q -> %q\n", pkgs[pkg].Name, pkgs[rdep].Name)
+					visit(rdep)
 				}
 			}
 		}
-		path = append(path, flagset.Arg(1))
-		findpaths(dst)
+		visit(dst)
 		fmt.Fprintln(w, "}")
 		return nil
 	}

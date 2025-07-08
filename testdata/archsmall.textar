@@ -35,6 +35,39 @@ glibc
 %SIZE%
 8000000
 
+== /var/lib/pacman/local/trio1/desc
+%NAME%
+trio1
+
+%DEPENDS%
+triobase
+trio3
+
+== /var/lib/pacman/local/trio2/desc
+%NAME%
+trio2
+
+%DEPENDS%
+trio1
+
+== /var/lib/pacman/local/trio3/desc
+%NAME%
+trio3
+
+%DEPENDS%
+trio2
+
+== /var/lib/pacman/local/triobase/desc
+%NAME%
+triobase
+
+== /var/lib/pacman/local/triouser/desc
+%NAME%
+triouser
+
+%DEPENDS%
+trio3
+
 == /home/user/tricky_pkgtrim
 somepkg1
 # comment 1
@@ -44,6 +77,7 @@ somepkg2 somepkg3
 some*kg4
 !seq 5
 some*kg5
+trio*
 
 !echo -e '# subprocess comment\nsubprocess_pkg'
 !echo '!echo recursive_pkg'
@@ -56,4 +90,4 @@ fancylib
 !cat nonexistent.$(echo apple)
 
 == /home/user/all_pkgtrim
-fancyapp fancylib otherapp glibc
+fancyapp fancylib otherapp glibc trio*

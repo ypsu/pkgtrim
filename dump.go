@@ -74,6 +74,8 @@ func dump(ctx context.Context) error {
 			add("graph1", "-graph", "fancylib")
 			add("graph2", "-graph", "fancylib", "otherapp")
 			add("graph3", "-graph", "nonexistent")
+			add("trace1", "-trace", "fancyapp", "glibc")
+			add("trace2", "-trace", "triouser", "triobase")
 			add("trim1", "fancyapp")
 			add("trim2", "glibc")
 			add("trim3", "fancyapp", "glibc")
