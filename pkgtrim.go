@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"slices"
 	"strings"
 
@@ -125,6 +126,9 @@ func Pkgtrim(w io.Writer, rootfs fs.FS, args []string) error {
 		fmt.Fprintf(w, "pkgtrim - linux PacKaGe TRIMmer tool\n\nSee https://ypsu.github.io/pkgtrim/ for documentation.\nFlags:\n\n")
 		flagset.PrintDefaults()
 		fmt.Fprintln(w)
+		if bi, ok := debug.ReadBuildInfo(); ok { // on success
+			fmt.Fprintf(w, "Version: %s\n\n", bi.Main.Version)
+		}
 	}
 	if err := flagset.Parse(args); err != nil {
 		return err
